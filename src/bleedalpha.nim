@@ -3,7 +3,9 @@ import stb_image/write as stbiw
 import os, strformat
 
 const HELP = """
-bleed [input] [output]
+bleedalpha [input] [output]
+
+Bleeds the alpha from the opaque pixels out into the image.
 
 v0.1.0; written by NiChrosia
 """

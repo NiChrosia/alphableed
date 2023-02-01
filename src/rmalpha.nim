@@ -3,7 +3,9 @@ import stb_image/write as stbiw
 import os, strformat
 
 const HELP = """
-bleed [input] [output]
+rmalpha [input] [output]
+
+Makes all transparent pixels opaque by setting the alpha to max.
 
 v0.1.0; written by NiChrosia
 """
