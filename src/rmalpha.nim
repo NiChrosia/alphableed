@@ -1,6 +1,7 @@
-import stb_image/read as stbi
-import stb_image/write as stbiw
-import os, strformat
+import os, common
+
+type Color = object
+    red, green, blue, alpha: uint8
 
 const HELP = """
 rmalpha [input] [output]
@@ -10,40 +11,25 @@ Makes all transparent pixels opaque by setting the alpha to max.
 v0.1.0; written by NiChrosia
 """
 
-if paramCount() < 2:
-    echo HELP
-    quit(QuitSuccess)
+proc removeAlpha*(width, height: int, data: openArray[uint32]): seq[uint32] =
+    result.setLen(width * height)
 
-var input = paramStr(1)
-if not fileExists(input):
-    echo fmt"file '{input}' does not exist."
-    quit(QuitFailure)
+    for index in 0 ..< (width * height):
+        # set alpha bits to max
+        var color = cast[Color](data[index])
+        color.alpha = uint8.high
 
-var output = paramStr(2)
+        result[index] = cast[uint32](color)
 
-var
-    width, height, channels: int
-    data: seq[uint8]
+when isMainModule:
+    if paramCount() < 2:
+        quit(HELP, QuitSuccess)
 
-data = stbi.load(input, width, height, channels, stbi.RGBA)
+    var input = validateFile(paramStr(1))
+    var output = paramStr(2)
 
-type
-    Color = object
-        red, green, blue, alpha: uint8
+    var (width, height, pixels) = readPng(input)
 
-var
-    pixels: seq[Color]
+    pixels = removeAlpha(width, height, pixels)
 
-pixels.setLen(data.len div 4)
-copyMem(addr pixels[0], addr data[0], data.len)
-
-for y in 0 ..< height:
-    for x in 0 ..< width:
-        pixels[x + y * width].alpha = uint8.high
-
-var writtenData: seq[uint8]
-writtenData.setLen(pixels.len * 4)
-
-copyMem(addr writtenData[0], addr pixels[0], writtenData.len)
-
-stbiw.writePNG(output, width, height, stbiw.RGBA, writtenData)
+    writePng(output, width, height, pixels)
