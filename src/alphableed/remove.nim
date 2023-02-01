@@ -1,14 +1,14 @@
-import os, common
+import os, strformat, common
 
 type Color = object
     red, green, blue, alpha: uint8
 
-const HELP = """
+const HELP = fmt"""
 rmalpha [input] [output]
 
 Makes all transparent pixels opaque by setting the alpha to max.
 
-v0.3.0; written by NiChrosia
+v{pkgVersion}; written by NiChrosia
 """
 
 proc removeAlpha*(width, height: int, data: openArray[uint32]): seq[uint32] =

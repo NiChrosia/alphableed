@@ -2,6 +2,9 @@ import stb_image/read as stbi
 import stb_image/write as stbiw
 import os, strformat
 
+const NimblePkgVersion {.strdefine.} = ""
+const pkgVersion* = NimblePkgVersion
+
 type Color* = object
     # adds up to 32 bits, and thus is 
     # memory-equivalent to a uint32

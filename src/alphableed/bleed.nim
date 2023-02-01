@@ -1,11 +1,11 @@
-import os, common
+import os, strformat, common
 
-const HELP = """
+const HELP = fmt"""
 bleedalpha [input] [output]
 
 Bleeds the alpha from the opaque pixels out into the image.
 
-v0.3.0; written by NiChrosia
+v{pkgVersion}; written by NiChrosia
 """
 
 proc bleed*(width, height: int, data: openArray[uint32]): seq[uint32] =
