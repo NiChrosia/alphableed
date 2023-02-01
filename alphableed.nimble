@@ -7,8 +7,9 @@ license     = "MIT"
 
 srcDir      = "src"
 binDir      = "build"
-bin         = @["bleed", "remove-alpha"]
+bin         = @["bleed", "remove_alpha"]
 
 requires [
-    "nim >= 1.6.10"
+    "nim >= 1.6.10",
+    "stbimage >= 2.5",
 ]
