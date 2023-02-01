@@ -8,7 +8,7 @@ rmalpha [input] [output]
 
 Makes all transparent pixels opaque by setting the alpha to max.
 
-v0.1.0; written by NiChrosia
+v0.2.0; written by NiChrosia
 """
 
 proc removeAlpha*(width, height: int, data: openArray[uint32]): seq[uint32] =

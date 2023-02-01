@@ -5,7 +5,7 @@ bleedalpha [input] [output]
 
 Bleeds the alpha from the opaque pixels out into the image.
 
-v0.1.0; written by NiChrosia
+v0.2.0; written by NiChrosia
 """
 
 proc bleed*(width, height: int, data: openArray[uint32]): seq[uint32] =
