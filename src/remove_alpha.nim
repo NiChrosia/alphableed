@@ -2,6 +2,16 @@ import stb_image/read as stbi
 import stb_image/write as stbiw
 import os, strformat
 
+const HELP = """
+bleed [input] [output]
+
+v0.1.0; written by NiChrosia
+"""
+
+if paramCount() < 2:
+    echo HELP
+    quit(QuitSuccess)
+
 var input = paramStr(1)
 if not fileExists(input):
     echo fmt"file '{input}' does not exist."
