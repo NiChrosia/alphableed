@@ -1,13 +1,16 @@
 # Package
 
-version     = "0.2.0"
+version     = "0.3.0"
 author      = "NiChrosia"
 description = "A pure-nim alpha bleeding implementation."
 license     = "MIT"
 
-srcDir      = "src"
+srcDir      = "alphableed"
 binDir      = "build"
-bin         = @["bleedalpha", "rmalpha"]
+namedBin    = {
+    "bleed":  "bleedalpha",
+    "remove": "rmalpha",
+}.toTable()
 
 requires [
     "nim >= 1.6.10",
