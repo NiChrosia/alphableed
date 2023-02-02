@@ -1,4 +1,4 @@
-import os, strformat, common
+import os, strformat, common, tables, sets
 
 const HELP = fmt"""
 bleedalpha [input] [output]
@@ -25,7 +25,7 @@ proc bleed*(width, height: int, data: openArray[uint32]): seq[uint32] =
     # next contains the pixels that are transparent,
     # but have opaque pixels as one of their 8 neigbors
     # var next: seq[(int, int)]
-    var next: seq[(int, int)]
+    var next = initHashSet[(int, int)]()
     var opaque: seq[bool]
     opaque.setLen(pixels.len)
 
@@ -42,35 +42,57 @@ proc bleed*(width, height: int, data: openArray[uint32]): seq[uint32] =
         (-1,  1),
     ]
 
-    proc addNext() =
-        for y in 0 ..< height:
-            for x in 0 ..< width:
-                if opaque[x + y * width] or (pixels[x + y * width].alpha > 0):
-                    if not opaque[x + y * width]:
-                        totalOpaques += 1
+    template forOpaqueNeighbors(x, y: int, body: untyped) =
+        ## executes [body] for all opaque neighbors
+        ##
+        ## additionally, the variables nx and ny
+        ## are provided for the current neighbor
 
-                    opaque[x + y * width] = true
-                    continue
+        for (xo, yo) in OFFSETS:
+            let nx {.inject.} = x + xo
+            let ny {.inject.} = y + yo
 
-                var hasOpaqueNearby = false
+            let index = nx + ny * width
 
-                for (xo, yo) in OFFSETS:
-                    let nx = x + xo
-                    let ny = y + yo
+            if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height):
+                if opaque[index] or (pixels[index].alpha > 0):
+                    body
 
-                    let index = nx + ny * width
+    template forClearNeighbors(x, y: int, body: untyped) =
+        ## same as forOpaqueNeighbors but for transparent neighbors
 
-                    if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height):
-                        if opaque[index] or (pixels[index].alpha > 0):
-                            hasOpaqueNearby = true
+        for (xo, yo) in OFFSETS:
+            let nx {.inject.} = x + xo
+            let ny {.inject.} = y + yo
 
-                if hasOpaqueNearby:
-                    next.add((x, y))
+            let index = nx + ny * width
 
-    addNext()
+            if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height):
+                if (not opaque[index]) or (pixels[index].alpha == 0):
+                    body
+
+    proc checkPixel(x, y: int) =
+        if opaque[x + y * width] or (pixels[x + y * width].alpha > 0):
+            if not opaque[x + y * width]:
+                totalOpaques += 1
+
+            opaque[x + y * width] = true
+            return
+
+        var hasOpaqueNearby = false
+
+        forOpaqueNeighbors(x, y):
+            hasOpaqueNearby = true
+
+        if hasOpaqueNearby:
+            next.incl((x, y))
+
+    for y in 0 ..< height:
+        for x in 0 ..< width:
+            checkPixel(x, y)
 
     while totalOpaques < width * height:
-        var opaqueQueue: seq[(int, int)]
+        var afterQueue: Table[(int, int), Color]
 
         for (x, y) in next:
             var opaquesNearby = 0'u
@@ -96,21 +118,32 @@ proc bleed*(width, height: int, data: openArray[uint32]): seq[uint32] =
             green = green div opaquesNearby
             blue = blue div opaquesNearby
 
-            let color = Color(red: uint8(red), green: uint8(green), blue: uint8(blue), alpha: 0'u8)
-            pixels[x + y * width] = color
-
             # we need to do it after to avoid
             # influencing the other pixels
-            opaqueQueue.add((x, y))
+            let color = Color(red: uint8(red), green: uint8(green), blue: uint8(blue), alpha: 0'u8)
 
-        for (x, y) in opaqueQueue:
+            afterQueue[(x, y)] = color
+
+        for (x, y) in afterQueue.keys:
+            let color = afterQueue[(x, y)]
+            pixels[x + y * width] = color
+
             # fake being opaque so that the
             # next round treats it as such
             opaque[x + y * width] = true
             totalOpaques += 1
 
-        next = @[]
-        addNext()
+        let previous = next
+        var checks = initHashSet[(int, int)]()
+
+        next = initHashSet[(int, int)]()
+
+        for (x, y) in previous:
+            forClearNeighbors(x, y):
+                checks.incl((nx, ny))
+
+        for (x, y) in checks:
+            checkPixel(x, y)
 
     return cast[seq[uint32]](pixels)
 
