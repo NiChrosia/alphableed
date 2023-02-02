@@ -31,6 +31,8 @@ proc bleed*(width, height: int, data: openArray[uint32]): seq[uint32] =
 
     var totalOpaques = 0
 
+    var loose = newSeq[bool](pixels.len)
+
     const OFFSETS: array[8, (int, int)] = [
         (0,   1),
         (1,   1),
@@ -61,14 +63,9 @@ proc bleed*(width, height: int, data: openArray[uint32]): seq[uint32] =
     template forClearNeighbors(x, y: int, body: untyped) =
         ## same as forOpaqueNeighbors but for transparent neighbors
 
-        for (xo, yo) in OFFSETS:
-            let nx {.inject.} = x + xo
-            let ny {.inject.} = y + yo
-
-            let index = nx + ny * width
-
-            if (nx >= 0) and (nx < width) and (ny >= 0) and (ny < height):
-                if (not opaque[index]) or (pixels[index].alpha == 0):
+        for nx {.inject.} in max(x - 1, 0) .. min(x + 1, width - 1):
+            for ny {.inject.} in max(y - 1, 0) .. min(y + 1, height - 1):
+                if loose[nx + ny * width]:
                     body
 
     proc checkPixel(x, y: int) =
@@ -79,13 +76,11 @@ proc bleed*(width, height: int, data: openArray[uint32]): seq[uint32] =
             opaque[x + y * width] = true
             return
 
-        var hasOpaqueNearby = false
-
         forOpaqueNeighbors(x, y):
-            hasOpaqueNearby = true
-
-        if hasOpaqueNearby:
             next.incl((x, y))
+            return
+
+        loose[x + y * width] = true
 
     for y in 0 ..< height:
         for x in 0 ..< width:
@@ -132,6 +127,8 @@ proc bleed*(width, height: int, data: openArray[uint32]): seq[uint32] =
             # next round treats it as such
             opaque[x + y * width] = true
             totalOpaques += 1
+
+            loose[x + y * width] = false
 
         let previous = next
         var checks = initHashSet[(int, int)]()
