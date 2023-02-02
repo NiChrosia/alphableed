@@ -23,15 +23,19 @@ proc bleed*(width, height: int, data: openArray[uint32]): seq[uint32] =
     # until there are no transparent pixels left
 
     # next contains the pixels that are transparent,
-    # but have opaque pixels as one of their 8 neigbors
-    # var next: seq[(int, int)]
-    var next = initHashSet[(int, int)]()
+    # but have opaque pixels as one of their 8 neighbors
+    var isNext = newSeq[bool](pixels.len)
+    var next = newSeq[(int, int)]()
+
     var opaque: seq[bool]
     opaque.setLen(pixels.len)
 
     var totalOpaques = 0
 
     var loose = newSeq[bool](pixels.len)
+
+    var isChecked = newSeq[bool](pixels.len)
+    var checks = newSeq[(int, int)]()
 
     const OFFSETS: array[8, (int, int)] = [
         (0,   1),
@@ -77,8 +81,10 @@ proc bleed*(width, height: int, data: openArray[uint32]): seq[uint32] =
             return
 
         forOpaqueNeighbors(x, y):
-            next.incl((x, y))
-            return
+            if not isNext[x + y * width]:
+                next.add((x, y))
+                isNext[x + y * width] = true
+                return
 
         loose[x + y * width] = true
 
@@ -86,8 +92,10 @@ proc bleed*(width, height: int, data: openArray[uint32]): seq[uint32] =
         for x in 0 ..< width:
             checkPixel(x, y)
 
-    while totalOpaques < width * height:
-        var afterQueue: Table[(int, int), Color]
+    proc bleedLayer() =
+        checks = @[]
+
+        var opaqueQueue: seq[int]
 
         for (x, y) in next:
             var opaquesNearby = 0'u
@@ -113,34 +121,39 @@ proc bleed*(width, height: int, data: openArray[uint32]): seq[uint32] =
             green = green div opaquesNearby
             blue = blue div opaquesNearby
 
-            # we need to do it after to avoid
+            # we need to set opaque after to avoid
             # influencing the other pixels
+
+            # but since the color adding checks
+            # opaque first, we can set the color during
+            # the iteration
             let color = Color(red: uint8(red), green: uint8(green), blue: uint8(blue), alpha: 0'u8)
-
-            afterQueue[(x, y)] = color
-
-        for (x, y) in afterQueue.keys:
-            let color = afterQueue[(x, y)]
             pixels[x + y * width] = color
 
+            opaqueQueue.add(x + y * width)
+            isNext[x + y * width] = false
+
+            forClearNeighbors(x, y):
+                if not isChecked[nx + ny * width]:
+                    checks.add((nx, ny))
+                    isChecked[nx + ny * width] = true
+
+        for index in opaqueQueue:
             # fake being opaque so that the
             # next round treats it as such
-            opaque[x + y * width] = true
+            opaque[index] = true
             totalOpaques += 1
 
-            loose[x + y * width] = false
+            loose[index] = false
 
-        let previous = next
-        var checks = initHashSet[(int, int)]()
-
-        next = initHashSet[(int, int)]()
-
-        for (x, y) in previous:
-            forClearNeighbors(x, y):
-                checks.incl((nx, ny))
+        next = @[]
 
         for (x, y) in checks:
+            isChecked[x + y * width] = false
             checkPixel(x, y)
+
+    while totalOpaques < width * height:
+        bleedLayer()
 
     return cast[seq[uint32]](pixels)
 
