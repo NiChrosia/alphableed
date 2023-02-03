@@ -89,6 +89,6 @@ when isMainModule:
 
     var (width, height, pixels) = readPng(input)
 
-    pixels = newBleed(width, height, pixels)
+    pixels = bleed(width, height, pixels)
 
     writePng(output, width, height, pixels)
