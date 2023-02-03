@@ -1,5 +1,5 @@
 # package
-version     = "0.4.0"
+version     = "0.4.1"
 author      = "NiChrosia"
 description = "A pure-nim alpha bleeding implementation."
 license     = "MIT"

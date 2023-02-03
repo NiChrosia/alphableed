@@ -11,7 +11,7 @@ how many layers to bleed out from the original image.
 v{pkgVersion}; written by NiChrosia
 """
 
-proc bleed*(width, height: int, data: seq[uint32], maxLayers: int): seq[uint32] =
+proc bleed*(width, height: int, data: seq[uint32], maxLayers: int = int.high): seq[uint32] =
     assert data.len == width * height, "Image data has incorrect dimensions!"
 
     var pixels = cast[seq[Color]](data)
@@ -94,7 +94,7 @@ when isMainModule:
 
     var input = validateFile(paramStr(1))
     var output = paramStr(2)
-    var maxLayers = if paramCount() == 3: parseInt(paramStr(3)) else: 0
+    var maxLayers = if paramCount() == 3: parseInt(paramStr(3)) else: int.high
 
     var (width, height, pixels) = readPng(input)
 
