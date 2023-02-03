@@ -1,14 +1,17 @@
-import os, strformat, common
+import strformat, common
 
 const HELP = fmt"""
-bleedalpha [input] [output]
+bleedalpha [input] [output] (maxLayers)
 
 Bleeds the alpha from the opaque pixels out into the image.
+
+Optionally takes an argument (maxLayers) determining
+how many layers to bleed out from the original image.
 
 v{pkgVersion}; written by NiChrosia
 """
 
-proc bleed*(width, height: int, data: seq[uint32]): seq[uint32] =
+proc bleed*(width, height: int, data: seq[uint32], maxLayers: int): seq[uint32] =
     assert data.len == width * height, "Image data has incorrect dimensions!"
 
     var pixels = cast[seq[Color]](data)
@@ -41,7 +44,9 @@ proc bleed*(width, height: int, data: seq[uint32]): seq[uint32] =
             # it has no opaque neighbors
             isLoose[x, y] = true
 
-    while next.len > 0:
+    var layer = 0
+
+    while layer < maxLayers and next.len > 0:
         pendingNext.setLen(0)
         
         for (x, y) in next:
@@ -77,18 +82,22 @@ proc bleed*(width, height: int, data: seq[uint32]): seq[uint32] =
             isOpaque[x, y] = true
 
         next.swap(pendingNext)
+        layer += 1
 
     return cast[seq[uint32]](pixels)
 
 when isMainModule:
+    import os, strutils
+
     if paramCount() < 2:
         quit(HELP, QuitSuccess)
 
     var input = validateFile(paramStr(1))
     var output = paramStr(2)
+    var maxLayers = if paramCount() == 3: parseInt(paramStr(3)) else: 0
 
     var (width, height, pixels) = readPng(input)
 
-    pixels = bleed(width, height, pixels)
+    pixels = bleed(width, height, pixels, maxLayers)
 
     writePng(output, width, height, pixels)
